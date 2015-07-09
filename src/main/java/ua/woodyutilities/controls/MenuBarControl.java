@@ -12,6 +12,7 @@ import javax.swing.*;
  * Time: 9:41 AM
  */
 public class MenuBarControl {
+    private static final OperationFactory factory = OperationFactory.getInstance();
     public static MenuBarControl instance;
 
     private MenuBarControl(){}
@@ -25,13 +26,21 @@ public class MenuBarControl {
     }
 
     private void registerMenuBarActions(){
+
         MainMenuBar menuBar = MainMenuBar.getInstance();
         JMenuItem importItem = menuBar.getImportItem();
+
         importItem.addActionListener(e -> {
-            OperationFactory factory = OperationFactory.getInstance();
-            Command importFile = factory.getCommand(factory.IMPORT_FILE);
+
+            Command importFile = factory.getCommand(OperationFactory.IMPORT_FILE);
             importFile.execute();
 
+        });
+
+        JMenuItem quitItem = menuBar.getQuitItem();
+        quitItem.addActionListener(e -> {
+            Command quit = factory.getCommand(OperationFactory.QUIT_APPLICATION);
+            quit.execute();
         });
     }
 

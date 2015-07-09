@@ -11,10 +11,13 @@ import javax.swing.table.DefaultTableModel;
  */
 public class MaterialTableModel extends DefaultTableModel {
     private static final LocalizationManager LM = LocalizationManager.getInstance();
+//    private static final String[] TITLE = new String[]{
+//            " ",
+//            LM.getProperty("TABLE_TITLE_MATERIAL_NAME"),
+//            LM.getProperty("TABLE_TITLE_CUSTOM_MATERIAL_NAME")};
     private static final String[] TITLE = new String[]{
             " ",
-            LM.getProperty("TABLE_TITLE_MATERIAL_NAME"),
-            LM.getProperty("TABLE_TITLE_CUSTOM_MATERIAL_NAME")};
+            LM.getProperty("TABLE_TITLE_MATERIAL_NAME")};
     public MaterialTableModel() {
         super(TITLE, 0);
     }

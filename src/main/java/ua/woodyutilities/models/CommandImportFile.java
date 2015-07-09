@@ -74,6 +74,7 @@ public class CommandImportFile implements Command {
     private boolean parse() throws IOException {
         XMLDocument document = XMLDocument.getInstance();
         Material materialTable = Material.getInstance();
+        materialTable.clearTable();
 
         Set<String> materials = new TreeSet<>();
         try {

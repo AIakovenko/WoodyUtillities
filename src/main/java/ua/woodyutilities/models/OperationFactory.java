@@ -11,6 +11,7 @@ public class OperationFactory {
     public static final String IMPORT_FILE = "import_file";
     public static final String GENERATE = "generate";
     public static final String CLEAR_STATUS = "clear_status";
+    public static final String QUIT_APPLICATION = "quit_application";
 
     private static OperationFactory instance;
     private HashMap<String, Command> commandsMap;
@@ -19,6 +20,7 @@ public class OperationFactory {
         commandsMap.put(IMPORT_FILE, new CommandImportFile());
         commandsMap.put(GENERATE, new CommandGenerate());
         commandsMap.put(CLEAR_STATUS, new CommandClearStatus());
+        commandsMap.put(QUIT_APPLICATION, new CommandQuit());
     }
 
     public static synchronized OperationFactory getInstance(){

@@ -28,8 +28,8 @@ public class Material {
     }
 
     public JTable create(){
-        final int MATERIAL_FIELD_SIZE = (MainFrame.FRAME_WIDTH)/2;
-        final int CUSTOM_MATERIAL_FIELD_SIZE = (MATERIAL_FIELD_SIZE-52);
+        final int MATERIAL_FIELD_SIZE = (MainFrame.FRAME_WIDTH) - 52;
+//        final int CUSTOM_MATERIAL_FIELD_SIZE = (MATERIAL_FIELD_SIZE-52);
 
         materialTableModel = new MaterialTableModel();
 
@@ -39,13 +39,17 @@ public class Material {
         materials.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         materials.getColumnModel().getColumn(0).setPreferredWidth(40);
         materials.getColumnModel().getColumn(1).setPreferredWidth(MATERIAL_FIELD_SIZE);
-        materials.getColumnModel().getColumn(2).setPreferredWidth(CUSTOM_MATERIAL_FIELD_SIZE);
+//        materials.getColumnModel().getColumn(2).setPreferredWidth(CUSTOM_MATERIAL_FIELD_SIZE);
 
         return materials;
     }
 
     public void addRow(String materialName){
         materialTableModel.addRow(new Object[]{false, materialName, materialName});
+    }
+
+    public int getRowsCount(){
+        return materials.getRowCount();
     }
 
     public java.util.List<String> getSelectedMaterials(){
@@ -57,6 +61,13 @@ public class Material {
             }
         }
         return list;
+    }
+
+    public void clearTable(){
+        int count = materials.getRowCount();
+        for (int i = count-1; i >= 0; i--){
+            materialTableModel.removeRow(i);
+        }
     }
 
 }

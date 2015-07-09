@@ -89,10 +89,10 @@ public class CommandGenerate implements Command {
 
 
         } catch (FileNotFoundException e) {
-            statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_SUCCESS"), false);
+            statusBar.addStatus(material + LM.getProperty("MESSAGE_IO_ERROR"), false);
             e.printStackTrace();
         } catch (IOException e) {
-            statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_SUCCESS"), false);
+            statusBar.addStatus(material + LM.getProperty("MESSAGE_IO_ERROR"), false);
             e.printStackTrace();
         }
 
