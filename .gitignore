@@ -71,8 +71,11 @@ local.properties
 # PDT-specific
 .buildpath
 
+artifacts
+artifacts/*
+
 ######################
 # Intellij Idea
 ######################
 .idea
-RoofTopEnergy.iml
+WoodyUtilities.iml
