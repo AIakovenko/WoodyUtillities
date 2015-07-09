@@ -12,6 +12,7 @@ import ua.woodyutilities.views.StatusBar;
 import ua.woodyutilities.xml.XMLDocument;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -27,10 +28,12 @@ public class CommandGenerate implements Command {
     private final LocalizationManager LM = LocalizationManager.getInstance();
     private StatusBar statusBar = StatusBar.getInstance();
     private final PropertyManager PM = PropertyManager.getInstance();
+    private File destinationFolder;
 
     public void execute() {
         Material materials = Material.getInstance();
         List<String> table = materials.getSelectedMaterials();
+        destinationFolder = showFileOpenDialog();
         for (String s : table) {
             generateFile(s);
         }
@@ -38,7 +41,12 @@ public class CommandGenerate implements Command {
     }
 
     private void generateFile(String material) {
-        File outFile = new File(PM.getValue(PropertyManager.PATH_EXPORTED_FILES) + material + ".xml");
+        String destination = destinationFolder.getAbsolutePath() + "/";
+        if (destination == null){
+            destination = PM.getValue(PropertyManager.PATH_EXPORTED_FILES) + "/";
+        }
+        File outFile = new File(destination + material + ".xml");
+
         try (
                 FileWriter out = new FileWriter(outFile);
                 BufferedWriter bw = new BufferedWriter(out)
@@ -141,6 +149,17 @@ public class CommandGenerate implements Command {
 
         }
         return body.toString();
+    }
+
+    private File showFileOpenDialog() {
+        File destination = null;
+        JFileChooser fileOpen = new JFileChooser("." + File.separator);
+        fileOpen.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+        int ret = fileOpen.showDialog(null, LM.getProperty("TITLE_CHOOSE_DESTINATION"));
+        if (ret == JFileChooser.APPROVE_OPTION) {
+            destination = fileOpen.getSelectedFile();
+        }
+        return destination;
     }
 
 

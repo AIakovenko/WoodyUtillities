@@ -61,7 +61,7 @@ public class CommandImportFile implements Command {
     }
 
     private void showFileOpenDialog() {
-        JFileChooser fileOpen = new JFileChooser("./");
+        JFileChooser fileOpen = new JFileChooser("." + File.separator);
         FileNameExtensionFilter filter = new FileNameExtensionFilter(
                 "XML files .xml", "xml");
         fileOpen.setFileFilter(filter);
