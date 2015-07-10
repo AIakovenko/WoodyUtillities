@@ -1,5 +1,6 @@
 package ua.woodyutilities.models;
 
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -25,6 +26,7 @@ import java.util.TreeSet;
  * Time: 10:04 AM
  */
 public class CommandImportFile implements Command {
+    private static final Logger logger = Logger.getLogger(CommandImportFile.class);
     private static final LocalizationManager LM = LocalizationManager.getInstance();
     private DataFile dataFile = DataFile.getInstance();
 
@@ -56,6 +58,7 @@ public class CommandImportFile implements Command {
                     LM.getProperty("MESSAGE_FILE_NOT_FOUND"),
                     LM.getProperty("TITLE_IMPORT_FILE"),
                     JOptionPane.ERROR_MESSAGE);
+            logger.error(e.getMessage(), e);
         }
 
     }
@@ -91,15 +94,13 @@ public class CommandImportFile implements Command {
                     materials.add(eElement.getAttribute("matname"));
                 }
             }
-            for(String s : materials){
-                materialTable.addRow(s);
-            }
-        } catch (Exception e) {
 
-            e.printStackTrace();
+            materials.forEach(s ->  materialTable.addRow(s));
+
+        } catch (Exception e) {
+            logger.error(e.getMessage(), e);
             return false;
         }
-
         return true;
     }
 

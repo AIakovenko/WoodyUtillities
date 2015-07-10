@@ -1,10 +1,10 @@
 package ua.woodyutilities.models;
 
+import org.apache.log4j.Logger;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
-import ua.woodyutilities.frames.MainFrame;
 import ua.woodyutilities.util.LocalizationManager;
 import ua.woodyutilities.util.PropertyManager;
 import ua.woodyutilities.views.Material;
@@ -12,12 +12,12 @@ import ua.woodyutilities.views.StatusBar;
 import ua.woodyutilities.xml.XMLDocument;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
 import java.util.List;
+
 
 /**
  * @autor Alex Iakovenko
@@ -25,6 +25,7 @@ import java.util.List;
  * Time: 4:19 PM
  */
 public class CommandGenerate implements Command {
+    private static final Logger logger = Logger.getLogger(CommandGenerate.class);
     private final LocalizationManager LM = LocalizationManager.getInstance();
     private StatusBar statusBar = StatusBar.getInstance();
     private final PropertyManager PM = PropertyManager.getInstance();
@@ -34,13 +35,13 @@ public class CommandGenerate implements Command {
         Material materials = Material.getInstance();
         List<String> table = materials.getSelectedMaterials();
         destinationFolder = showFileOpenDialog();
-        for (String s : table) {
-            generateFile(s);
-        }
+        table.forEach(s -> generateFile(s));
+
 
     }
 
     private void generateFile(String material) {
+        String errorMessage;
         String destination = destinationFolder.getAbsolutePath() + "/";
         if (destination == null){
             destination = PM.getValue(PropertyManager.PATH_EXPORTED_FILES) + "/";
@@ -88,20 +89,18 @@ public class CommandGenerate implements Command {
                     "</Object>";
             bw.write(tail);
 
-//            JOptionPane.showMessageDialog(
-//                    MainFrame.getInstance(),
-//                    LM.getProperty("MESSAGE_GENERATE_SUCCESS"),
-//                    LM.getProperty("TITLE_GENERATE_FILE"),
-//                    JOptionPane.INFORMATION_MESSAGE);
             statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_SUCCESS"), false);
 
 
         } catch (FileNotFoundException e) {
-            statusBar.addStatus(material + LM.getProperty("MESSAGE_IO_ERROR"), false);
-            e.printStackTrace();
+            errorMessage = material + LM.getProperty("MESSAGE_IO_ERROR");
+            statusBar.addStatus(errorMessage, false);
+            logger.error(errorMessage, e);
+
         } catch (IOException e) {
-            statusBar.addStatus(material + LM.getProperty("MESSAGE_IO_ERROR"), false);
-            e.printStackTrace();
+            errorMessage = material + LM.getProperty("MESSAGE_IO_ERROR");
+            statusBar.addStatus(errorMessage, false);
+            logger.error(errorMessage, e);
         }
 
     }
@@ -113,15 +112,12 @@ public class CommandGenerate implements Command {
         doc.getDocumentElement().normalize();
         StringBuilder body = new StringBuilder();
         try {
-
-
             StreamResult result = new StreamResult(new StringWriter());
             NodeList nList = doc.getElementsByTagName("Part");
 
             for (int temp = 0; temp < nList.getLength(); temp++) {
 
                 Node nNode = nList.item(temp);
-//                Node nNode = nList.item(0);
 
                 if (nNode.getNodeType() == Node.ELEMENT_NODE) {
 
@@ -143,10 +139,9 @@ public class CommandGenerate implements Command {
 
             String xmlString = result.getWriter().toString();
             body.append(xmlString);
-//            System.out.println(xmlString);
 
         } catch (TransformerConfigurationException e) {
-
+             logger.error(e.getMessage(), e);
         }
         return body.toString();
     }

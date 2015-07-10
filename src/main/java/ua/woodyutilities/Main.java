@@ -1,5 +1,6 @@
 package ua.woodyutilities;
 
+import org.apache.log4j.Logger;
 import ua.woodyutilities.frames.MainFrame;
 
 import javax.swing.*;
@@ -12,21 +13,20 @@ import java.awt.*;
  */
 public class Main {
     private static MainFrame mainFrame;
+    private static Logger logger = Logger.getLogger(Main.class.getName());
     public static void main(String[] args){
         try {
+            logger.info("Application has been run");
             UIManager.setLookAndFeel("com.sun.java.swing.plaf.windows.WindowsLookAndFeel");
             //UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
         } catch (UnsupportedLookAndFeelException ex) {
-//            logger.info(ex.getMessage());
+            logger.info(ex.getMessage());
         } catch (IllegalAccessException ex) {
-//            logger.warning(ex.getMessage());
-            ex.printStackTrace();
+            logger.warn(ex.getMessage());
         } catch (InstantiationException ex) {
-//            logger.log(Level.SEVERE, ex.getMessage(), ex);
-            ex.printStackTrace();
+            logger.warn(ex.getMessage());
         } catch (ClassNotFoundException ex) {
-//            logger.log(Level.SEVERE, ex.getMessage(), ex);
-            ex.printStackTrace();
+            logger.warn(ex.getMessage());
         }
         /* Turn off metal's use of bold fonts */
         UIManager.put("swing.boldMetal", Boolean.FALSE);
@@ -37,7 +37,7 @@ public class Main {
                     mainFrame = MainFrame.getInstance();
                     mainFrame.startFrame();
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.error(e.getMessage(), e);
                 }
         });
     }
