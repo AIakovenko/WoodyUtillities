@@ -5,6 +5,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import ua.woodyutilities.dto.Edgeband;
+import ua.woodyutilities.dto.PartDTO;
 import ua.woodyutilities.util.LocalizationManager;
 import ua.woodyutilities.util.PropertyManager;
 import ua.woodyutilities.views.Material;
@@ -16,7 +18,7 @@ import javax.xml.transform.*;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.*;
-import java.util.List;
+import java.util.*;
 
 
 /**
@@ -26,14 +28,18 @@ import java.util.List;
  */
 public class CommandGenerate implements Command {
     private static final Logger logger = Logger.getLogger(CommandGenerate.class);
+    private static final int TO_MILLIMETERS = 1000;
     private final LocalizationManager LM = LocalizationManager.getInstance();
     private StatusBar statusBar = StatusBar.getInstance();
     private final PropertyManager PM = PropertyManager.getInstance();
     private File destinationFolder;
+    private List<PartDTO> parts;
+    private Set<Edgeband> usedEdgebands;
 
     public void execute() {
         Material materials = Material.getInstance();
         List<String> table = materials.getSelectedMaterials();
+
         destinationFolder = showFileOpenDialog();
         table.forEach(s -> generateFile(s));
 
@@ -47,6 +53,9 @@ public class CommandGenerate implements Command {
             destination = PM.getValue(PropertyManager.PATH_EXPORTED_FILES) + "/";
         }
         File outFile = new File(destination + material + ".xml");
+
+        parts = new LinkedList<>();
+        usedEdgebands = new TreeSet<>();
 
         try (
                 FileWriter out = new FileWriter(outFile);
@@ -89,6 +98,8 @@ public class CommandGenerate implements Command {
                     "</Object>";
             bw.write(tail);
 
+            writeHTMFile(material);
+
             statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_SUCCESS"), false);
 
 
@@ -130,6 +141,7 @@ public class CommandGenerate implements Command {
                         try {
                             DOMSource source = new DOMSource(nNode);
                             transformer.transform(source, result);
+                            writePartInfo(eElement);
 
                         } catch (TransformerException e) {
                         }
@@ -156,6 +168,170 @@ public class CommandGenerate implements Command {
         }
         return destination;
     }
+
+    private void writePartInfo(Element element){
+        PartDTO partDTO = new PartDTO();
+        partDTO.setName(element.getAttribute("name"));
+        partDTO.setMatName(element.getAttribute("matname"));
+        partDTO.setThickness(Double.parseDouble(element.getAttribute("SizeH")) * TO_MILLIMETERS);
+        partDTO.setWidth(Double.parseDouble(element.getAttribute("SizeX")) * TO_MILLIMETERS);
+        partDTO.setHeight(Double.parseDouble(element.getAttribute("SizeY")) * TO_MILLIMETERS);
+        partDTO.setTotalWidth(Double.parseDouble(element.getAttribute("SizeXg")) * TO_MILLIMETERS);
+        partDTO.setTotalHeight(Double.parseDouble(element.getAttribute("SizeYg")) * TO_MILLIMETERS);
+
+        NodeList nodes = element.getChildNodes();
+
+        Element leftEdge = (Element)nodes.item(0);
+        Element rightEdge = (Element)nodes.item(1);
+        Element topEdge = (Element)nodes.item(2);
+        Element bottomEdge = (Element)nodes.item(3);
+
+        partDTO.putEdge(PartDTO.LEFT_EDGE, createEdgeband(leftEdge));
+        partDTO.putEdge(PartDTO.BOTTOM_EDGE, createEdgeband(bottomEdge));
+        partDTO.putEdge(PartDTO.RIGHT_EDGE, createEdgeband(rightEdge));
+        partDTO.putEdge(PartDTO.TOP_EDGE, createEdgeband(topEdge));
+
+
+        parts.add(partDTO);
+
+    }
+
+    private Edgeband createEdgeband(Element element){
+        final double EDGEBAND_THICKNESS = 0.35;
+        final int EDGEBAND_WIDTH = 22;
+        String id = element.getAttribute("mat_id");
+        String matname = element.getAttribute("matname");
+        Long materialId;
+        if (!id.equals("")){
+            materialId = Long.parseLong(id);
+        } else {
+            materialId = 0l;
+        }
+
+        Edgeband edgeband = new Edgeband(materialId, matname, EDGEBAND_THICKNESS, EDGEBAND_WIDTH);
+        return edgeband;
+    }
+
+    private void writeHTMFile(String material){
+
+
+        String errorMessage;
+        String destination = destinationFolder.getAbsolutePath() + "/";
+        if (destination == null){
+            destination = PM.getValue(PropertyManager.PATH_EXPORTED_FILES) + "/";
+        }
+        File outFile = new File(destination + material + ".htm");
+        try (
+                PrintWriter out = new PrintWriter(outFile, "cp1251");
+                BufferedWriter bw = new BufferedWriter(out)
+        ) {
+            String head = "<html>\n" +
+                    "  <head>\n" +
+                    "    <title>По деталям</title>\n" +
+                    "    <meta http-equiv=\"Content-Type\" content=\"text/html; charset=windows-1251\">\n" +
+                    "  </head>\n" +
+                    "<body>\n" +
+                    "  <TABLE>\n" +
+                    "    <THEAD> \n" +
+                    "    </THEAD>\n";
+
+            bw.write(head);
+            String body = createHTMBody();
+            bw.write(body);
+            String tail = "</body>\n" +
+                    "</html>";
+            bw.write(tail);
+
+            statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_HTM_SUCCESS"), false);
+
+
+        } catch (FileNotFoundException e) {
+            errorMessage = material + LM.getProperty("MESSAGE_IO_ERROR");
+            statusBar.addStatus(errorMessage, false);
+            logger.error(errorMessage, e);
+
+        } catch (IOException e) {
+            errorMessage = material + LM.getProperty("MESSAGE_IO_ERROR");
+            statusBar.addStatus(errorMessage, false);
+            logger.error(errorMessage, e);
+        }
+    }
+
+    private String createHTMBody(){
+        StringBuilder sb = new StringBuilder();
+
+        parts.forEach(part -> {
+            Collection<Edgeband> edgebands = part.getEdge();
+            edgebands.forEach(edgeband-> {
+                usedEdgebands.add(edgeband);
+            });
+            Map<Edgeband, Integer> edgebandMap = new HashMap<Edgeband, Integer>();
+            int index = 1;
+            for (Edgeband edgeband : usedEdgebands){
+                if (edgebands.contains(edgeband) && edgeband.getMaterialId() != 0){
+                    edgebandMap.put(edgeband, index++);
+                }
+
+
+            }
+            Integer topEdge = edgebandMap.get(part.getEdge(PartDTO.TOP_EDGE));
+            Integer leftEdge = edgebandMap.get(part.getEdge(PartDTO.LEFT_EDGE));
+            Integer rightEdge = edgebandMap.get(part.getEdge(PartDTO.RIGHT_EDGE));
+            Integer bottomEdge = edgebandMap.get(part.getEdge(PartDTO.BOTTOM_EDGE));
+
+            String item =
+                    "    <TR>\n" +
+                    "      <TD>" + part.getName()+ "</TD>\n" +
+                    "      <TD>" + part.getMatName() + "</TD>\n" +
+                    "      <TD>" + part.getThickness() + "</TD>\n" +
+                    "      <TD>" + String.format("%.1f", part.getTotalWidth())+ " x " + String.format("%.1f", part.getTotalHeight())+ "</TD>\n" +
+                    "      <TD>" + String.format("%.1f", part.getWidth()) + " x " + String.format("%.1f", part.getHeight())+ "</TD>\n" +
+                    "      <TD>\n" +
+                    "\t<DIV>\n" +
+                    "\t  <TABLE>\n" +
+                    "\t    <TR>\n" +
+                    "\t      <TD><NOBR>&nbsp;" + (leftEdge != null ? String.valueOf(leftEdge) + " (1)" : "&nbsp;") + "</NOBR></TD>\n" +
+                    "\t      <TD>\n" +
+                    "\t\t <P><NOBR>&nbsp;" + (topEdge != null ? String.valueOf(topEdge) + " (4)" : "&nbsp;") + "</NOBR><BR>"+
+                    "<NOBR>&nbsp;" + (bottomEdge != null ? String.valueOf(bottomEdge) + " (2)" : "&nbsp;") +"</NOBR></P>\n" +
+                    "\t      </TD>\n" +
+                    "\t      <TD><P><NOBR>&nbsp;"+ (rightEdge != null ? String.valueOf(rightEdge) + " (3)" : "&nbsp;") +"</NOBR></P></TD>\n" +
+                    "\t    </TR>\n" +
+                    "\t  </TABLE>\n" +
+                    "\t</DIV>\n" +
+                    "      </TD>\n";
+            sb.append(item);
+        });
+        String tableHead = "</TABLE>\n" +
+                "<H3></H3>\n" +
+                "<TABLE>\n" +
+                " <THEAD>\n" +
+                "  <TH>№ п/п</TH>\n" +
+                "  <TH>Название</TH>\n" +
+                "  <TH>Ширина</TH>\n" +
+                "  <TH>Толщина</TH>\n" +
+                " </THEAD>\n" ;
+
+        sb.append(tableHead);
+        int tableIndex = 1;
+        for (Edgeband edgeband : usedEdgebands){
+            if (!edgeband.getName().equals("")) {
+                String item = "<TR>\n" +
+                        "  <TD>" + tableIndex++ + "</TD>\n" +
+                        "  <TD>" + edgeband.getName() + "</TD>\n" +
+                        "  <TD>" + edgeband.getWidth() + "</TD>\n" +
+                        "  <TD>" + String.format("%.1f", edgeband.getThickness()) + "</TD>\n" +
+                        " </TR>\n";
+
+                sb.append(item);
+            }
+
+        }
+        String tableTail = "</TABLE>\n";
+        sb.append(tableTail);
+        return sb.toString();
+    }
+
 
 
 }
