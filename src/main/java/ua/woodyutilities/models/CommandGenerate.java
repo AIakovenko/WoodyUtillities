@@ -58,7 +58,7 @@ public class CommandGenerate implements Command {
         usedEdgebands = new TreeSet<>();
 
         try (
-                FileWriter out = new FileWriter(outFile);
+                PrintWriter out = new PrintWriter(outFile, "UTF-8");
                 BufferedWriter bw = new BufferedWriter(out)
         ) {
             String head = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
