@@ -1,13 +1,14 @@
 package ua.woodyutilities.models;
 
 import org.apache.log4j.Logger;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 import ua.woodyutilities.dto.Edgeband;
 import ua.woodyutilities.dto.PartDTO;
+import ua.woodyutilities.entity.Edge;
+import ua.woodyutilities.entity.Part;
+import ua.woodyutilities.entity.PartType;
 import ua.woodyutilities.util.LocalizationManager;
+import ua.woodyutilities.util.PartBuilder;
 import ua.woodyutilities.util.PropertyManager;
 import ua.woodyutilities.views.Material;
 import ua.woodyutilities.views.StatusBar;
@@ -101,6 +102,8 @@ public class CommandGenerate implements Command {
             writeHTMFile(material);
 
             statusBar.addStatus(material + LM.getProperty("MESSAGE_GENERATE_SUCCESS"), false);
+            statusBar.addStatus(parts.size() + " parts has been operated", false);
+            parts.forEach(part -> System.out.println(part.getName()));
 
 
         } catch (FileNotFoundException e) {
@@ -122,10 +125,11 @@ public class CommandGenerate implements Command {
         Document doc = document.getDocument();
         doc.getDocumentElement().normalize();
         StringBuilder body = new StringBuilder();
-        try {
-            StreamResult result = new StreamResult(new StringWriter());
-            NodeList nList = doc.getElementsByTagName("Part");
 
+            NodeList nList = doc.getElementsByTagName("Part");
+            PartBuilder partBuilder = new PartBuilder();
+
+            List<Part> parts = new ArrayList<>();
             for (int temp = 0; temp < nList.getLength(); temp++) {
 
                 Node nNode = nList.item(temp);
@@ -133,28 +137,24 @@ public class CommandGenerate implements Command {
                 if (nNode.getNodeType() == Node.ELEMENT_NODE) {
 
                     Element eElement = (Element) nNode;
-                    String currentMaterial = eElement.getAttribute("matname");
+                    String currentMaterial = eElement.getAttribute(Part.ATTR_MATNAME);
                     if (currentMaterial.equals(material)) {
-                        Transformer transformer = TransformerFactory.newInstance().newTransformer();
-                        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-                        try {
-                            DOMSource source = new DOMSource(nNode);
-                            transformer.transform(source, result);
-                            writePartInfo(eElement);
+                        if (eElement.getAttribute(Part.ATTR_TYPE).equals(PartType.RECTANGLE)) {
+                            Part part = partBuilder.buildRectangle(eElement);
+                            parts.add(part);
 
-                        } catch (TransformerException e) {
+                        } else {
+                            Part part = partBuilder.buildCurviLinear(eElement);
+                            parts.add(part);
                         }
+                        writePartInfo(eElement);
                     }
                 }
             }
+            parts.forEach(part -> {
+                body.append(part.toString());
+            });
 
-            String xmlString = result.getWriter().toString();
-            body.append(xmlString);
-
-        } catch (TransformerConfigurationException e) {
-             logger.error(e.getMessage(), e);
-        }
         return body.toString();
     }
 
@@ -179,18 +179,25 @@ public class CommandGenerate implements Command {
         partDTO.setTotalWidth(Double.parseDouble(element.getAttribute("SizeXg")) * TO_MILLIMETERS);
         partDTO.setTotalHeight(Double.parseDouble(element.getAttribute("SizeYg")) * TO_MILLIMETERS);
 
-        NodeList nodes = element.getChildNodes();
 
-        Element leftEdge = (Element)nodes.item(0);
-        Element rightEdge = (Element)nodes.item(1);
-        Element topEdge = (Element)nodes.item(2);
-        Element bottomEdge = (Element)nodes.item(3);
 
-        partDTO.putEdge(PartDTO.LEFT_EDGE, createEdgeband(leftEdge));
-        partDTO.putEdge(PartDTO.BOTTOM_EDGE, createEdgeband(bottomEdge));
-        partDTO.putEdge(PartDTO.RIGHT_EDGE, createEdgeband(rightEdge));
-        partDTO.putEdge(PartDTO.TOP_EDGE, createEdgeband(topEdge));
+        Element leftEdge;
+        Element rightEdge;
+        Element topEdge;
+        Element bottomEdge;
 
+        if (element.getAttribute("type").equals("rectangle")){
+            NodeList nodes = element.getChildNodes();
+            leftEdge = (Element)nodes.item(0);
+            rightEdge = (Element)nodes.item(1);
+            topEdge = (Element)nodes.item(2);
+            bottomEdge = (Element)nodes.item(3);
+
+            partDTO.putEdge(PartDTO.LEFT_EDGE, createEdgeband(leftEdge));
+            partDTO.putEdge(PartDTO.BOTTOM_EDGE, createEdgeband(bottomEdge));
+            partDTO.putEdge(PartDTO.RIGHT_EDGE, createEdgeband(rightEdge));
+            partDTO.putEdge(PartDTO.TOP_EDGE, createEdgeband(topEdge));
+        }
 
         parts.add(partDTO);
 
