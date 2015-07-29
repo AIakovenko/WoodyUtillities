@@ -42,7 +42,9 @@ public class CommandGenerate implements Command {
         List<String> table = materials.getSelectedMaterials();
 
         destinationFolder = showFileOpenDialog();
-        table.forEach(s -> generateFile(s));
+        if (destinationFolder != null) {
+            table.forEach(s -> generateFile(s));
+        }
 
 
     }
